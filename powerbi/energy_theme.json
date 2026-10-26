@@ -1,0 +1,13 @@
+{
+  "name": "Energy Demand Forecasting",
+  "dataColors": ["#0072B2", "#E69F00", "#009E73", "#D55E00", "#CC79A7", "#56B4E9", "#7F7F7F", "#332288"],
+  "background": "#FFFFFF",
+  "foreground": "#252423",
+  "tableAccent": "#0072B2",
+  "good": "#009E73",
+  "neutral": "#E69F00",
+  "bad": "#D55E00",
+  "maximum": "#0072B2",
+  "center": "#F2F2F2",
+  "minimum": "#E69F00"
+}

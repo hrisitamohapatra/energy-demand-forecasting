@@ -1,0 +1,5 @@
+model,WAPE_%,RMSE_MW,peak_MAE_MW,peak_hour_within_1h_%
+noise sd 0C,3.19,1294.05,1126.09,76.12
+noise sd 1C,3.52,1450.72,1356.27,68.69
+noise sd 2C,4.31,1829.11,1921.26,60.73
+noise sd 3C,5.27,2285.03,2679.7,54.33

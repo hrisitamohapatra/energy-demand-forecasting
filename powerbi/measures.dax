@@ -1,0 +1,180 @@
+// =====================================================================================
+// Energy Demand Forecasting: DAX measures and helper tables for Power BI
+//
+// Model table names (after renaming in Power Query, see docs/powerbi_build_guide.md):
+//   dim_date, dim_hour, dim_model, fact_load_hourly,
+//   fact_forecast            (= view mart.v_fact_forecast)
+//   fact_forecast_scenario   (= view mart.v_fact_forecast_scenario)
+//   fact_daily_peak          (= view mart.v_daily_peak_forecast)
+//
+// Put the measures in an empty table called "_Measures" (Home > Enter data > name it, load),
+// then create each one with Modeling > New measure. Display folders are noted per section.
+// Every row of the hourly tables is one hour, so MW summed over rows = MWh.
+// =====================================================================================
+
+
+// ------------------------------------------------------------------------------------
+// 0. HELPER TABLES (Modeling > New table). Create these first.
+// ------------------------------------------------------------------------------------
+
+// Split slicer: relate dim_split[split] to fact_forecast[split] AND fact_daily_peak[split]
+dim_split = DATATABLE ( "split", STRING, { { "validation" }, { "test" } } )
+
+// Temperature what-if offsets (degrees C) for the scenario page
+Temp Offset = GENERATESERIES ( -5, 5, 1 )
+
+// Assumed prices ($/MWh). These are ILLUSTRATIVE ASSUMPTIONS, not market prices.
+Under Price = GENERATESERIES ( 50, 500, 10 )
+Over Price  = GENERATESERIES ( 0, 200, 5 )
+
+
+// ------------------------------------------------------------------------------------
+// 1. LOAD (display folder: Load)
+// ------------------------------------------------------------------------------------
+
+Peak Load MW = MAX ( fact_load_hourly[load_mw] )
+
+Average Load MW = AVERAGE ( fact_load_hourly[load_mw] )
+
+Min Load MW = MIN ( fact_load_hourly[load_mw] )
+
+Peak Date =
+VAR pk = [Peak Load MW]
+RETURN
+    CALCULATE ( MIN ( fact_load_hourly[date_key] ), fact_load_hourly[load_mw] = pk )
+
+Peak Hour =
+VAR pk = [Peak Load MW]
+RETURN
+    CALCULATE ( MIN ( fact_load_hourly[hour_of_day] ), fact_load_hourly[load_mw] = pk )
+
+// Average-based so the partial years 2002 and 2018 do not distort the comparison.
+// Requires dim_date to be marked as the date table (on date_key).
+Load YoY % =
+VAR Prev =
+    CALCULATE ( [Average Load MW], SAMEPERIODLASTYEAR ( dim_date[date_key] ) )
+RETURN
+    DIVIDE ( [Average Load MW] - Prev, Prev )
+
+// One value per day when dim_date[date_key] is on the scatter's Details field
+Daily Max Temp C = MAX ( fact_load_hourly[temp_c] )
+
+
+// ------------------------------------------------------------------------------------
+// 2. HOURLY FORECAST ACCURACY (display folder: Accuracy)
+//    Put a single-select split slicer (dim_split) on every accuracy page and set it to "test".
+// ------------------------------------------------------------------------------------
+
+Actual MW = AVERAGE ( fact_forecast[actual_mw] )
+
+Forecast MW = AVERAGE ( fact_forecast[forecast_mw] )
+
+// Weighted absolute percentage error (same definition as the Python notebooks)
+WAPE =
+DIVIDE ( SUM ( fact_forecast[abs_error_mw] ), SUM ( fact_forecast[actual_mw] ) )
+
+MAE MW = AVERAGE ( fact_forecast[abs_error_mw] )
+
+RMSE MW = SQRT ( AVERAGEX ( fact_forecast, fact_forecast[error_mw] ^ 2 ) )
+
+MAPE =
+AVERAGEX ( fact_forecast, DIVIDE ( fact_forecast[abs_error_mw], fact_forecast[actual_mw] ) )
+
+// Positive = the model over-forecasts on average
+Bias MW = AVERAGE ( fact_forecast[error_mw] )
+
+Best Model WAPE = MINX ( VALUES ( dim_model[model_name] ), [WAPE] )
+
+Best Model =
+VAR best = [Best Model WAPE]
+RETURN
+    CONCATENATEX (
+        FILTER ( VALUES ( dim_model[model_name] ), [WAPE] = best ),
+        dim_model[model_name],
+        ", "
+    )
+
+// Improvement over the weekly seasonal-naive baseline (positive = better)
+WAPE Improvement vs Baseline % =
+VAR base = CALCULATE ( [WAPE], dim_model[model_name] = "seasonal_naive" )
+RETURN
+    DIVIDE ( base - [WAPE], base )
+
+
+// ------------------------------------------------------------------------------------
+// 3. DAILY PEAK ACCURACY (display folder: Peak accuracy; uses fact_daily_peak)
+// ------------------------------------------------------------------------------------
+
+Peak Error MAE MW = AVERAGE ( fact_daily_peak[abs_peak_error_mw] )
+
+Peak Error Bias MW = AVERAGE ( fact_daily_peak[peak_error_mw] )
+
+Peak Hour Hit Rate =
+DIVIDE (
+    CALCULATE ( COUNTROWS ( fact_daily_peak ), fact_daily_peak[peak_hour_hit] = TRUE () ),
+    COUNTROWS ( fact_daily_peak )
+)
+
+
+// ------------------------------------------------------------------------------------
+// 4. COST OF FORECAST ERROR (display folder: Cost). Prices are assumptions.
+// ------------------------------------------------------------------------------------
+
+Under Price per MWh = SELECTEDVALUE ( 'Under Price'[Value], 150 )   // emergency purchase, $/MWh
+
+Over Price per MWh = SELECTEDVALUE ( 'Over Price'[Value], 40 )      // wasted procurement, $/MWh
+
+Under-forecast MWh = SUM ( fact_forecast[under_forecast_mw] )
+
+Over-forecast MWh = SUM ( fact_forecast[over_forecast_mw] )
+
+Under-forecast Cost = [Under-forecast MWh] * [Under Price per MWh]
+
+Over-forecast Cost = [Over-forecast MWh] * [Over Price per MWh]
+
+Total Error Cost = [Under-forecast Cost] + [Over-forecast Cost]
+
+Error Cost per MWh Demand = DIVIDE ( [Total Error Cost], SUM ( fact_forecast[actual_mw] ) )
+
+// Cost the model avoids compared with the weekly baseline (positive = saving)
+Cost Saving vs Baseline =
+VAR base = CALCULATE ( [Total Error Cost], dim_model[model_name] = "seasonal_naive" )
+RETURN
+    base - [Total Error Cost]
+
+
+// ------------------------------------------------------------------------------------
+// 5. TEMPERATURE SCENARIOS (display folder: Scenario; uses fact_forecast_scenario)
+//    Scores come from the Python model at fixed offsets; a DAX parameter only SELECTS one.
+//    Only the temperature inputs move (lag features still hold the real past), so this
+//    what-if is conservative.
+// ------------------------------------------------------------------------------------
+
+Selected Offset C = SELECTEDVALUE ( 'Temp Offset'[Value], 0 )
+
+Scenario Forecast MWh =
+VAR off = [Selected Offset C]
+RETURN
+    CALCULATE ( SUM ( fact_forecast_scenario[forecast_mw] ), fact_forecast_scenario[temp_offset_c] = off )
+
+Scenario Baseline MWh =
+CALCULATE ( SUM ( fact_forecast_scenario[forecast_mw] ), fact_forecast_scenario[temp_offset_c] = 0 )
+
+Scenario Avg Forecast MW =
+VAR off = [Selected Offset C]
+RETURN
+    CALCULATE ( AVERAGE ( fact_forecast_scenario[forecast_mw] ), fact_forecast_scenario[temp_offset_c] = off )
+
+Scenario Baseline Avg MW =
+CALCULATE ( AVERAGE ( fact_forecast_scenario[forecast_mw] ), fact_forecast_scenario[temp_offset_c] = 0 )
+
+Scenario Change MWh = [Scenario Forecast MWh] - [Scenario Baseline MWh]
+
+Scenario Change % = DIVIDE ( [Scenario Change MWh], [Scenario Baseline MWh] )
+
+// Exposure if we procured for today's temperatures and the scenario happened:
+// extra demand is bought at the emergency price, a shortfall in demand wastes procurement.
+Scenario Exposure Cost =
+VAR d = [Scenario Change MWh]
+RETURN
+    IF ( d >= 0, d * [Under Price per MWh], - d * [Over Price per MWh] )

@@ -1,0 +1,11 @@
+model,split,peak_MAE_MW,peak_bias_MW,peak_MAPE_%,n_days
+sarima,validation,2011.3,-43.0,5.3,366
+seasonal_naive,validation,4033.5,-49.3,10.6,366
+same_hour_yesterday,validation,2265.3,-4.8,6.1,366
+prophet,validation,1904.2,595.8,5.3,366
+lightgbm,validation,864.8,446.2,2.3,366
+sarima,test,2220.8,-66.9,6.0,579
+seasonal_naive,test,4384.4,-111.6,11.8,579
+same_hour_yesterday,test,2611.9,-21.2,7.2,579
+prophet,test,2052.4,1121.5,5.9,579
+lightgbm,test,1123.5,502.0,3.1,579
