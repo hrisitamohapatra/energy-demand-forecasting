@@ -186,8 +186,6 @@ $40 per MWh surplus), LightGBM's error on the test period costs about $1.0 billi
 $5 billion for the baseline. Shifting temperature up 5 °C raises forecast load by about 1,340 MW
 (+4.3%); shifting it down 5 °C lowers it by about 480 MW. See the Power BI pages.
 
-![Daily-peak error and temperature what-if](tableau/screenshots/peak_and_whatif.png)
-
 ## Model comparison
 
 | Model | Test WAPE | Test RMSE (MW) | Test bias (MW) | Validation WAPE |
@@ -216,15 +214,27 @@ Power BI and Tableau show the same forecasts. Small differences in the last digi
 (for example a daily-peak error of 1,124 MW in the dashboards against 1,126 MW in the notebooks)
 because the daily-peak views keep only complete 24-hour days with no imputed hours.
 
-![Tableau forecast accuracy dashboard](tableau/screenshots/forecast_accuracy.png)
+### Power BI screenshots
 
-![Power BI peak load page](powerbi/screenshots/03_peak_load.png)
+![Overview](powerbi/screenshots/01_overview.png)
 
-![Power BI cost and scenarios page](powerbi/screenshots/04_cost_scenarios.png)
+![Forecast vs actual](powerbi/screenshots/02_forecast_vs_actual.png)
 
-The Power BI screenshots show the LightGBM test-split cards (see the page footers); the charts and
-tables on those two pages were captured with the Split slicer on All, so their numbers include
-validation and training hours.
+![Peak load](powerbi/screenshots/03_peak_load.png)
+
+![Cost and scenarios](powerbi/screenshots/04_cost_scenarios.png)
+
+![About](powerbi/screenshots/05_about.png)
+
+The cards on the peak load and cost pages show LightGBM on the test split (see the page footers).
+The charts and tables on those two pages were captured with the Split slicer on All, so their
+numbers include validation and training hours.
+
+### Tableau screenshots
+
+![Forecast accuracy dashboard](tableau/screenshots/forecast_accuracy.png)
+
+![Peak error and temperature what-if dashboard](tableau/screenshots/peak_and_whatif.png)
 
 ## Assumptions and limitations
 
