@@ -53,7 +53,7 @@ separate validation year (2016), never on the test set.
 WAPE is total absolute error divided by total actual load, so large-load hours count for more.
 Figures are from `docs/results/model_comparison.csv` and `backtest_metrics.csv`.
 
-![Forecast accuracy dashboard](tableau/screenshots/forecast_accuracy.png)
+![Test WAPE and peak-hour hit rate by model](docs/figures/model_comparison.png)
 
 ## Architecture
 
@@ -179,14 +179,14 @@ type. The model over-forecasts on average (+397 MW overall, +503 MW at the daily
 bias grows with temperature. Peak-hour timing is best in winter (85.9% within one hour) and weakest
 in spring and summer (about 71%).
 
-![Season by hour](tableau/screenshots/forecast_accuracy.png)
+![LightGBM error by hour, season and temperature band](docs/figures/lightgbm_error_breakdown.png)
 
 **5. What error costs, and what temperature does.** With assumed prices ($150 per MWh short,
 $40 per MWh surplus), LightGBM's error on the test period costs about $1.0 billion against roughly
 $5 billion for the baseline. Shifting temperature up 5 °C raises forecast load by about 1,340 MW
 (+4.3%); shifting it down 5 °C lowers it by about 480 MW. See the Power BI pages.
 
-![Cost and scenarios](powerbi/screenshots/04_cost_scenarios.png)
+![Daily-peak error and temperature what-if](tableau/screenshots/peak_and_whatif.png)
 
 ## Model comparison
 
@@ -216,7 +216,15 @@ Power BI and Tableau show the same forecasts. Small differences in the last digi
 (for example a daily-peak error of 1,124 MW in the dashboards against 1,126 MW in the notebooks)
 because the daily-peak views keep only complete 24-hour days with no imputed hours.
 
-![Peak load page](powerbi/screenshots/03_peak_load.png)
+![Tableau forecast accuracy dashboard](tableau/screenshots/forecast_accuracy.png)
+
+![Power BI peak load page](powerbi/screenshots/03_peak_load.png)
+
+![Power BI cost and scenarios page](powerbi/screenshots/04_cost_scenarios.png)
+
+The Power BI screenshots show the LightGBM test-split cards (see the page footers); the charts and
+tables on those two pages were captured with the Split slicer on All, so their numbers include
+validation and training hours.
 
 ## Assumptions and limitations
 
